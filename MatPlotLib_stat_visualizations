@@ -1,0 +1,117 @@
+import subprocess
+import sys
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Install numpy, pandas, matplotlib, and requests if not already installed
+subprocess.check_call([sys.executable, "-m", "pip", "install", "numpy", "pandas", "matplotlib", "requests"])
+
+# URL for the dataset
+url = 'https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-ST0151EN-SkillsNetwork/labs/teachingratings.csv'
+
+# Download the file
+response = requests.get(url)
+file_path = 'IBMDataFromURLDOMAIN.csv'
+
+# Save the file
+with open(file_path, 'wb') as file:
+    file.write(response.content)
+
+# Read the file into a DataFrame
+df = pd.read_csv(file_path)
+print(df.head())
+print(df.info())
+
+# Display descriptive stats for the entire DataFrame
+desc_stats = df.describe()
+print(desc_stats)
+
+# Visualize descriptive stats as a bar chart
+desc_stats_transposed = desc_stats.transpose()
+desc_stats_transposed.plot(kind='bar', figsize=(15, 10))
+plt.title('Descriptive Statistics')
+plt.ylabel('Values')
+plt.xlabel('Statistics')
+plt.xticks(rotation=45)
+plt.show()
+
+# Visualize Means and Std for Teachers by gender with Labels
+grouped_stats = df.groupby('gender').agg({'beauty':['mean', 'std', 'var']}).reset_index()
+grouped_stats.columns = ['gender', 'mean_beauty', 'std_beauty', 'var_beauty']
+ax = grouped_stats.plot(x='gender', y=['mean_beauty', 'std_beauty', 'var_beauty'], kind='bar', figsize=(10, 6))
+plt.title('Beauty Ratings by Gender')
+plt.ylabel('Values')
+plt.xlabel('Gender')
+plt.xticks(rotation=0)
+plt.legend(['Mean', 'Standard Deviation', 'Variance'])
+
+# Add data labels
+for p in ax.patches:
+    ax.annotate(f'{p.get_height():.2f}', (p.get_x() + p.get_width() / 2., p.get_height()), 
+                ha='center', va='center', xytext=(0, 10), textcoords='offset points')
+
+plt.show()
+
+# Visualize Tenure of Teachers by Gender
+tenure_count = df[df.tenure == 'yes'].groupby('gender').agg({'tenure': 'count'}).reset_index()
+tenure_count['percentage'] = 100 * tenure_count.tenure / tenure_count.tenure.sum()
+
+# Create a pie chart
+plt.figure(figsize=(8, 8))
+plt.pie(tenure_count['tenure'], labels=tenure_count['gender'], autopct='%1.1f%%', startangle=140)
+plt.title('Percentage of Tenured Teachers by Gender')
+plt.show()
+
+# Visualize Tenure of Teachers by Minority Status as a bar chart with count and percentage labels
+tenure_minority = df[df.tenure == 'yes']
+minority_count = tenure_minority.groupby('minority').agg({'tenure': 'count'}).reset_index()
+minority_count['percentage'] = 100 * minority_count.tenure / minority_count.tenure.sum()
+
+fig, ax = plt.subplots(figsize=(10, 6))
+bars = ax.bar(minority_count['minority'], minority_count['percentage'], color=['blue', 'red'])
+
+# Add data labels
+for bar, count, percentage in zip(bars, minority_count['tenure'], minority_count['percentage']):
+    height = bar.get_height()
+    ax.annotate(f'{count}\n({percentage:.1f}%)',
+                xy=(bar.get_x() + bar.get_width() / 2, height),
+                xytext=(0, -25),  # 3 points vertical offset
+                textcoords="offset points",
+                ha='center', va='bottom', color='black', fontsize=10, fontweight='bold')
+
+plt.title('Percentage of Tenured Teachers by Minority Status')
+plt.ylabel('Percentage')
+plt.xlabel('Minority Status')
+plt.show()
+
+# Visualize Mean Age of Tenured vs Non-Tenured Teachers with Box Plot and Labels
+fig, ax = plt.subplots(figsize=(10, 6))
+boxplot = df.boxplot(column='age', by='tenure', ax=ax)
+plt.title('Age Distribution of Tenured vs Non-Tenured Teachers')
+plt.suptitle('')  # Suppress the default title to avoid duplication
+plt.ylabel('Age')
+plt.xlabel('Tenure Status')
+
+# Visualize Mean Age of Tenured vs Non-Tenured Teachers with Box Plot and Labels
+fig, ax = plt.subplots(figsize=(10, 6))
+boxplot = df.boxplot(column='age', by='tenure', ax=ax)
+plt.title('Age Distribution of Tenured vs Non-Tenured Teachers')
+plt.suptitle('')  # Suppress the default title to avoid duplication
+plt.ylabel('Age')
+plt.xlabel('Tenure Status')
+
+# Add labels for key points on the box plot
+for line in ax.artists:
+    x, y = line.get_xdata(), line.get_ydata()
+    ax.annotate(f'Median: {y[1]:.2f}', xy=(x[1], y[1]), xytext=(0, 10), textcoords='offset points', ha='center', va='bottom', color='black', fontsize=10, fontweight='bold')
+    ax.annotate(f'Q1: {y[0]:.2f}', xy=(x[0], y[0]), xytext=(0, 10), textcoords='offset points', ha='center', va='bottom', color='black', fontsize=10, fontweight='bold')
+    ax.annotate(f'Q3: {y[2]:.2f}', xy=(x[2], y[2]), xytext=(0, 10), textcoords='offset points', ha='center', va='bottom', color='black', fontsize=10, fontweight='bold')
+
+for line in ax.lines:
+    if line.get_linestyle() == '--':
+        x, y = line.get_xdata(), line.get_ydata()
+        ax.annotate(f'Min: {y[0]:.2f}', xy=(x[0], y[0]), xytext=(0, 10), textcoords='offset points', ha='center', va='bottom', color='black', fontsize=10, fontweight='bold')
+        ax.annotate(f'Max: {y[1]:.2f}', xy=(x[1], y[1]), xytext=(0, 10), textcoords='offset points', ha='center', va='bottom', color='black', fontsize=10, fontweight='bold')
+
+plt.show()
